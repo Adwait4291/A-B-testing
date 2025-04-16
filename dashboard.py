@@ -194,9 +194,11 @@ if run_analysis_button:
             if not analysis_results:
                  st.warning("Analysis completed but produced no results.")
             else:
-                 # Use success message with experimental rerun
+                 # Use success message with rerun
                  st.success("Analysis Complete!")
-                 st.experimental_rerun() # Rerun to display results below the button
+                 # --- CORRECTED LINE ---
+                 st.rerun() # Rerun to display results below the button
+                 # --- END CORRECTION ---
 
     except ValueError as ve:
         st.error(f"Analysis Setup Error: {ve}")
