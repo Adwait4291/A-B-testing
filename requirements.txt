@@ -4,7 +4,4 @@ numpy
 scipy
 statsmodels
 plotly
-matplotlib
-seaborn
-reportlab
 streamlit
