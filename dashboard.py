@@ -1,6 +1,7 @@
 # dashboard.py
 """
-Simplified Streamlit dashboard for A/B test analysis.
+Ultra-Simplified Streamlit dashboard for A/B test analysis.
+Hardcoded parameters, no config file needed, no sidebar.
 """
 import streamlit as st
 import pandas as pd
@@ -9,24 +10,25 @@ import plotly.express as px
 import os
 import traceback
 
-# --- Import Custom Modules & Config ---
+# --- Import Custom Analyzer ---
+# Make sure 'statistical_analyzer.py' is in the same folder
 try:
-    from statistical_analyzer import SimpleABAnalyzer # Import simplified analyzer
-    import config # Import simplified config
-    INPUT_DATA_FILE = config.INPUT_DATA_FILE
-    GROUP_COLUMN = config.GROUP_COLUMN
-    CONTROL_VALUE = config.CONTROL_GROUP_VALUE
-    TREATMENT_VALUE = config.TREATMENT_GROUP_VALUE
-    CONVERSION_METRIC = config.CONVERSION_COLUMN
-    CONTINUOUS_METRICS = config.CONTINUOUS_METRICS
-    ALPHA = config.ALPHA
-    DASHBOARD_TITLE = config.DASHBOARD_TITLE
+    from statistical_analyzer import SimpleABAnalyzer
 except ImportError as e:
-    st.error(f"Error importing modules: {e}. Make sure 'config.py' and 'statistical_analyzer.py' are in the same folder.")
+    st.error(f"Error importing analyzer: {e}. Make sure 'statistical_analyzer.py' is in the same folder.")
     st.stop()
-except AttributeError as e:
-    st.error(f"Error accessing configuration in 'config.py': {e}. Make sure all required variables are defined.")
-    st.stop()
+
+# --- Hardcoded Configuration ---
+# Define your settings directly here
+INPUT_DATA_FILE = 'finance_ab.csv'  # The data file name
+GROUP_COLUMN = 'Version'            # Column identifying the groups
+CONTROL_VALUE = 'A'                 # Value for Control group
+TREATMENT_VALUE = 'B'               # Value for Treatment group
+CONVERSION_METRIC = 'ApplicationCompleted' # Binary conversion column
+CONTINUOUS_METRICS_TO_RUN = []      # List of continuous metrics to analyze (e.g., ['SessionDuration_seconds']) - Empty means none
+ALPHA = 0.05                        # Significance level
+DASHBOARD_TITLE = 'A/B Test Results'
+# --- End Hardcoded Configuration ---
 
 
 # --- Page Configuration ---
@@ -42,7 +44,7 @@ def load_data(file_path):
     """Loads data from the specified file path."""
     if not os.path.exists(file_path):
         st.error(f"Data file not found: {file_path}")
-        st.info("Please ensure 'finance_ab.csv' is in the same directory as the script, or update INPUT_DATA_FILE in config.py.")
+        st.info(f"Please ensure '{file_path}' is in the same directory as this script.")
         return None
     try:
         df = pd.read_csv(file_path)
@@ -59,11 +61,16 @@ def display_simplified_metrics(results):
         return
 
     st.subheader("Key Metric Performance")
-    cols = st.columns(len(results))
+    num_metrics = len(results)
+    if num_metrics == 0:
+        st.info("Analysis run, but no valid metric results generated.")
+        return
+
+    cols = st.columns(num_metrics)
     col_idx = 0
 
     for metric, data in results.items():
-         if not isinstance(data, dict): continue # Skip if result format is wrong
+         if not isinstance(data, dict): continue
 
          with cols[col_idx]:
              is_rate = 'Rate' in metric
@@ -123,23 +130,36 @@ def plot_comparison(df_display, metric_name, result_data):
      st.plotly_chart(fig_bar, use_container_width=True)
 
      # Optional: Box plot for continuous metrics if data available
-     if not is_rate and original_metric_col in df_display.columns:
-          fig_box = px.box(df_display.dropna(subset=[original_metric_col]),
-                           x=GROUP_COLUMN, y=original_metric_col, color=GROUP_COLUMN,
-                           title=f"{metric_name} Distribution", points="outliers",
-                           color_discrete_map={CONTROL_VALUE: 'skyblue', TREATMENT_VALUE: 'lightcoral'},
-                           labels={original_metric_col: y_label})
-          fig_box.update_layout(showlegend=False, title_x=0.5)
-          st.plotly_chart(fig_box, use_container_width=True)
+     if not is_rate and original_metric_col in df_display.columns and not df_display[original_metric_col].isnull().all():
+          try:
+            fig_box = px.box(df_display.dropna(subset=[original_metric_col]),
+                            x=GROUP_COLUMN, y=original_metric_col, color=GROUP_COLUMN,
+                            title=f"{metric_name} Distribution", points="outliers",
+                            color_discrete_map={CONTROL_VALUE: 'skyblue', TREATMENT_VALUE: 'lightcoral'},
+                            labels={original_metric_col: y_label})
+            fig_box.update_layout(showlegend=False, title_x=0.5)
+            st.plotly_chart(fig_box, use_container_width=True)
+          except Exception as box_e:
+              st.warning(f"Could not generate box plot for {metric_name}: {box_e}")
 
 
 # --- Main Application ---
 st.title(f"📊 {DASHBOARD_TITLE}")
 
-# --- CORRECTED LINE 138 ---
-data_filename = os.path.basename(INPUT_DATA_FILE)
-st.markdown(f"Analyze A/B test results from `{data_filename}`.")
-# --- END CORRECTION ---
+# --- Display Fixed Configuration ---
+st.markdown("---")
+st.subheader("Experiment Setup")
+col1, col2, col3 = st.columns(3)
+col1.info(f"Data File: `{os.path.basename(INPUT_DATA_FILE)}`")
+col2.info(f"Groups: `{CONTROL_VALUE}` (Control) vs `{TREATMENT_VALUE}` (Treatment)")
+col3.info(f"Alpha: `{ALPHA}`")
+
+st.markdown(f"**Conversion Metric:** `{CONVERSION_METRIC}`")
+if CONTINUOUS_METRICS_TO_RUN:
+    st.markdown(f"**Continuous Metrics:** `{'`, `'.join(CONTINUOUS_METRICS_TO_RUN)}`")
+else:
+    st.markdown("**Continuous Metrics:** None")
+st.markdown("---")
 
 
 # --- Load Data ---
@@ -148,48 +168,35 @@ df_loaded = load_data(INPUT_DATA_FILE)
 if df_loaded is None:
     st.stop() # Stop execution if data loading failed
 
-# --- Sidebar ---
-st.sidebar.header("⚙️ Experiment Setup")
-st.sidebar.info(f"Group Column: `{GROUP_COLUMN}`")
-st.sidebar.info(f"Control Group: `{CONTROL_VALUE}`")
-st.sidebar.info(f"Treatment Group: `{TREATMENT_VALUE}`")
-st.sidebar.info(f"Conversion Metric: `{CONVERSION_METRIC}`")
-st.sidebar.info(f"Alpha (Significance Level): `{ALPHA}`")
-
-st.sidebar.subheader("Metrics to Analyze")
-# Allow user to select which continuous metrics to analyze from the list in config
-metrics_to_analyze = [CONVERSION_METRIC] # Start with the conversion metric
-available_continuous = [m for m in CONTINUOUS_METRICS if m in df_loaded.columns]
-
-if available_continuous:
-    selected_continuous = st.sidebar.multiselect(
-         "Select Continuous Metrics:",
-         options=available_continuous,
-         default=available_continuous
-    )
-    metrics_to_analyze.extend(selected_continuous)
-
 
 # --- Analysis Execution ---
 analysis_results = {}
-if st.button("Run Analysis", key='run_button'):
+run_analysis_button = st.button("Run Analysis", key='run_button', type="primary")
+
+if run_analysis_button:
     try:
         with st.spinner("Running analysis..."):
+            # Validate columns exist before analysis
+            required_cols = [GROUP_COLUMN, CONVERSION_METRIC] + CONTINUOUS_METRICS_TO_RUN
+            missing_cols = [col for col in required_cols if col not in df_loaded.columns]
+            if missing_cols:
+                 st.error(f"Missing required columns in data file: {', '.join(missing_cols)}")
+                 st.stop()
+
             analyzer = SimpleABAnalyzer(df_loaded, GROUP_COLUMN, CONTROL_VALUE, TREATMENT_VALUE)
-            # Separate conversion and continuous for the analyzer function
-            conv_metric_arg = CONVERSION_METRIC if CONVERSION_METRIC in metrics_to_analyze else None
-            cont_metrics_arg = [m for m in metrics_to_analyze if m != CONVERSION_METRIC and m in available_continuous]
 
             analysis_results = analyzer.run_analysis(
-                conversion_metric=conv_metric_arg,
-                continuous_metrics=cont_metrics_arg,
+                conversion_metric=CONVERSION_METRIC,
+                continuous_metrics=CONTINUOUS_METRICS_TO_RUN, # Use the hardcoded list
                 alpha=ALPHA
             )
-            st.session_state.analysis_results = analysis_results # Store results in session state
+            st.session_state.analysis_results = analysis_results # Store results
             if not analysis_results:
                  st.warning("Analysis completed but produced no results.")
             else:
+                 # Use success message with experimental rerun
                  st.success("Analysis Complete!")
+                 st.experimental_rerun() # Rerun to display results below the button
 
     except ValueError as ve:
         st.error(f"Analysis Setup Error: {ve}")
@@ -198,7 +205,7 @@ if st.button("Run Analysis", key='run_button'):
         traceback.print_exc()
 
 # --- Display Results ---
-# Check if results exist in session state (from previous run or current run)
+# Check if results exist in session state (from previous button click)
 if 'analysis_results' in st.session_state and st.session_state.analysis_results:
     results_to_display = st.session_state.analysis_results
     display_simplified_metrics(results_to_display)
@@ -206,16 +213,17 @@ if 'analysis_results' in st.session_state and st.session_state.analysis_results:
     st.divider()
     st.header("📈 Detailed Metric Analysis")
 
-    # Create tabs for each analyzed metric
-    metric_tabs = st.tabs(list(results_to_display.keys()))
-    tab_index = 0
-    for metric_name, result_data in results_to_display.items():
-         with metric_tabs[tab_index]:
-             plot_comparison(df_loaded, metric_name, result_data)
-         tab_index += 1
-
-elif not analysis_results: # If button wasn't clicked or analysis failed on first try
-    st.info("Click 'Run Analysis' to see the results.")
+    # Check if there are results to show in tabs
+    if results_to_display:
+        # Create tabs for each analyzed metric
+        metric_tabs = st.tabs(list(results_to_display.keys()))
+        tab_index = 0
+        for metric_name, result_data in results_to_display.items():
+            with metric_tabs[tab_index]:
+                plot_comparison(df_loaded, metric_name, result_data)
+            tab_index += 1
+    else:
+        st.info("No detailed metric results to display.")
 
 
 # --- Show Data Sample ---
