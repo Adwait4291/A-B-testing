@@ -1,84 +1,46 @@
 # config.py
-"""Configuration settings for the A/B test data simulator."""
+"""
+Configuration settings for the A/B testing analysis using marketing_AB.csv.
+"""
+import os
 
-import numpy as np
-from datetime import datetime, timedelta
+# --- Input Data ---
+# Get the absolute path of the directory where this config file is located
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# Define the input data file relative to this config file's directory
+INPUT_DATA_FILE = os.path.join(BASE_DIR, 'marketing_AB.csv')
 
-# --- Simulation Parameters ---
-N_ROWS = 100_000  # Medium size dataset
-CONTROL_GROUP_SIZE = 0.5 # Proportion of users in the control group (0.0 to 1.0)
-NOISE_FACTOR = 0.2   # General variability factor (higher means more randomness)
-START_DATE = datetime(2024, 1, 1)
-END_DATE = datetime(2024, 3, 31)
+# --- Experiment Setup ---
+GROUP_COLUMN = 'test group'     # Column identifying the groups in marketing_AB.csv
+CONTROL_GROUP_VALUE = 'psa'   # Value representing the Control group ('Public Service Announcement')
+TREATMENT_GROUP_VALUE = 'ad'  # Value representing the Treatment group ('Advertisement')
 
-# --- User Characteristics ---
-COUNTRIES = ['US', 'UK', 'DE', 'CA', 'FR', 'AU', 'IN', 'BR']
-CHANNELS = ['Paid Search', 'Organic Search', 'Social Media', 'Direct', 'Referral', 'Email']
-DEVICES = ['Mobile', 'Desktop', 'Tablet']
-DEVICE_DISTRIBUTION = [0.65, 0.30, 0.05] # Mobile slightly heavier
-USER_TYPES = ['New', 'Returning']
-USER_TYPE_DISTRIBUTION = [0.7, 0.3] # More new users
-REFERRERS = ['google', 'facebook', 'instagram', 'bing', 'direct', 'partner_site', 'newsletter', 'other']
-REFERRER_DISTRIBUTION = [0.35, 0.15, 0.10, 0.08, 0.12, 0.05, 0.1, 0.05]
+# --- Metrics Configuration ---
+# Primary metric (must be a binary 0/1 or boolean column for conversion analysis)
+# In marketing_AB.csv, 'converted' is boolean. Analyzer handles bool/int conversion.
+CONVERSION_COLUMN = 'converted'
 
-# --- Base Funnel Conversion Rates (Control Group - Average) ---
-# These represent the probability of moving from one step to the next
-BASE_RATES = {
-    'click_from_view': 0.15,         # 15% view-to-click rate
-    'app_start_from_click': 0.30,    # 30% click-to-app_start rate
-    'app_complete_from_start': 0.40 # 40% app_start-to-app_complete rate
-}
+# Other potential metrics to analyze (numeric columns from marketing_AB.csv)
+# Note: Analyzer/Dashboard will check if these exist before using
+CONTINUOUS_METRICS = ['total ads', 'most ads hour']
 
-# --- Treatment Effect (Absolute Lift/Decrease in Conversion Rate) ---
-# Represents the *change* in probability for the treatment group
-TREATMENT_EFFECT = {
-    'click_from_view': 0.02,         # Treatment increases view-to-click by 2 percentage points
-    'app_start_from_click': 0.05,    # Treatment increases click-to-start by 5 percentage points
-    'app_complete_from_start': -0.03 # Treatment decreases start-to-complete by 3 percentage points (e.g., more friction)
-}
+# --- Statistical Analysis Parameters ---
+ALPHA = 0.05  # Significance level (commonly 5%)
 
-# --- Base Continuous Metrics (Control Group - Average) ---
-BASE_CONTINUOUS = {
-    'time_on_page_mean': 90,  # seconds
-    'time_on_page_std': 45,   # seconds
-    'bounce_rate': 0.45,      # 45% bounce rate for users who *clicked* but didn't start app
-    'scroll_depth_mean': 60,  # Percentage scroll depth
-    'scroll_depth_std': 25,   # Percentage scroll depth std dev
-}
+# --- PDF Report Parameters ---
+REPORT_FILENAME = os.path.join(BASE_DIR, "marketing_ab_test_report.pdf") # Default output filename
+REPORT_TITLE = "Marketing A/B Test Analysis Report (Ad vs PSA)"
 
-# --- Treatment Effect (Multiplicative Factor for Continuous Metrics) ---
-# Represents how the treatment *multiplies* the base value
-TREATMENT_EFFECT_CONTINUOUS = {
-    'time_on_page_factor': 1.15, # Treatment users spend 15% longer on page (if they click)
-    'bounce_rate_factor': 0.90,  # Treatment users have 10% lower bounce rate (if they click)
-    'scroll_depth_factor': 1.10, # Treatment users scroll 10% further down (if they click)
-}
+# --- Dashboard Parameters ---
+DASHBOARD_TITLE = 'Marketing A/B Test Dashboard'
 
-# --- Interaction Effects/Segment Adjustments (Multiplicative Factors) ---
-# How different segments behave compared to the average base rates/effects
-SEGMENT_ADJUSTMENTS = {
-    'device': {
-        'Mobile': {'rate_factor': 0.9, 'effect_factor': 1.0}, # Mobile users convert slightly less
-        'Desktop': {'rate_factor': 1.1, 'effect_factor': 1.1}, # Desktop users convert slightly more, treatment more effective
-        'Tablet': {'rate_factor': 1.0, 'effect_factor': 1.0}
-    },
-    'user_type': {
-        'New': {'rate_factor': 0.95, 'effect_factor': 0.9}, # New users convert slightly less, treatment less effective
-        'Returning': {'rate_factor': 1.1, 'effect_factor': 1.2} # Returning users convert more, treatment more effective
-    }
-    # Add more complex interactions if needed (e.g., country-specific)
-}
+# --- (Optional) Segmentation Columns ---
+# Define columns from marketing_AB.csv that might be used for filtering/segmentation
+SEGMENTATION_COLUMNS = ['most ads day'] # Only 'most ads day' identified as potential segment
 
-# --- Cost Simulation ---
-# Cost per click ranges (min, max) - potentially varying by channel/country
-# Simplified: Varying by channel only for this example
-CPC_RANGES = {
-    'Paid Search': (0.8, 2.5),
-    'Organic Search': (0.0, 0.0), # Organic has no direct click cost
-    'Social Media': (0.4, 1.5),
-    'Direct': (0.0, 0.0),
-    'Referral': (0.1, 0.5), # May have partner costs
-    'Email': (0.05, 0.2)    # Email platform costs distributed
-}
-# Default CPC if channel not found
-DEFAULT_CPC_RANGE = (0.2, 0.6)
+
+print(f"Config loaded. Input data: {INPUT_DATA_FILE}")
+print(f"Group column: '{GROUP_COLUMN}', Control: '{CONTROL_GROUP_VALUE}', Treatment: '{TREATMENT_GROUP_VALUE}'")
+print(f"Conversion metric: '{CONVERSION_COLUMN}'")
+print(f"Potential continuous metrics: {CONTINUOUS_METRICS}")
+print(f"Significance Level (Alpha): {ALPHA}")
