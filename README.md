@@ -1,127 +1,124 @@
 # A/B Testing Analysis Framework
 
-## Project Introduction
+## Overview
 
-This repository contains a framework designed for the analysis of A/B testing results. A/B testing is a methodology used to compare two variants (denoted 'A' and 'B') of a component, such as a webpage or application feature, to ascertain which variant yields superior performance concerning a defined metric.
+This project provides a framework for analyzing the results of A/B tests. A/B testing is a method of comparing two versions (A and B) of something (like a webpage, app feature, or marketing email) to determine which one performs better based on a specific metric (e.g., conversion rate, click-through rate, session duration).
 
-This framework facilitates the ingestion of user data from an A/B test, executes statistical analysis to compare the performance differential between the control ('A') and treatment ('B') groups, and presents the findings via an interactive web-based dashboard.
+This framework takes user data from an A/B test, performs statistical analysis to compare the performance of the two versions (Control 'A' vs. Treatment 'B'), and presents the results in an interactive web dashboard.
 
-## Background: A/B Testing Principles
+## Core Concepts of A/B Testing Applied Here
 
-The analysis performed by this framework adheres to standard A/B testing principles:
+1.  **Hypothesis Testing:** The fundamental goal is to test a hypothesis. For example, "Does version B lead to a significantly higher application completion rate than version A?".
+2.  **Control vs. Treatment:** Users are typically divided into two groups:
+    * **Control (Group 'A' in this project):** Shown the original version.
+    * **Treatment (Group 'B' in this project):** Shown the new version being tested.
+3.  **Key Metrics:** Performance is measured using specific metrics. This project focuses on:
+    * **Conversion Rate:** Calculated from a binary outcome (e.g., `ApplicationCompleted` - True/False). It measures the proportion of users who took the desired action.
+    * **Continuous Metrics:** Numerical measurements (e.g., `SessionDuration_seconds`, though currently disabled in the dashboard config) where averages can be compared.
+4.  **Statistical Significance:** It's not enough for metrics to be different; we need to know if the difference is likely real or just due to random chance. This is determined using statistical tests (Z-test, T-test) and a pre-defined significance level (alpha, typically 5%). A low p-value (less than alpha) suggests the difference is statistically significant.
+5.  **Lift:** This quantifies the percentage improvement (or decline) of the treatment group's metric compared to the control group's metric.
 
-1.  **Hypothesis Testing:** The core objective is to evaluate a hypothesis, typically regarding the relative effectiveness of the treatment variant compared to the control (e.g., "Variant B results in a statistically significant increase in the application completion rate relative to Variant A").
-2.  **Group Allocation:** User cohorts are segregated into distinct groups:
-    * **Control Group (Variant 'A'):** Exposed to the baseline version.
-    * **Treatment Group (Variant 'B'):** Exposed to the modified version under evaluation.
-3.  **Metric Definition:** Performance is quantified using specific metrics. This project primarily utilizes:
-    * **Conversion Rate:** Derived from a binary outcome variable (e.g., `ApplicationCompleted` [cite: 2]), representing the proportion of users completing a target action.
-    * **Continuous Metrics:** Numerical variables (e.g., `SessionDuration_seconds`[cite: 2], although currently unconfigured for analysis in the dashboard) for which mean values are compared between groups.
-4.  **Statistical Significance:** Analysis aims to determine if observed differences in metrics are statistically significant or likely attributable to random variation. Significance is assessed using statistical tests (Z-test, T-test) against a predetermined significance level (alpha). A p-value below alpha indicates statistical significance.
-5.  **Performance Lift:** Quantifies the relative percentage change in the metric for the treatment group compared to the control group.
+## Why This Project?
 
-## Project Objectives
+This project was built to:
 
-The development of this framework serves several purposes:
+* **Automate A/B Test Analysis:** Provide a reusable tool to quickly analyze standard A/B test results without manual calculations.
+* **Apply Statistical Rigor:** Ensure that conclusions drawn from the test are statistically sound by using appropriate tests (Z-test for proportions, T-test for means).
+* **Visualize Results:** Make the results easy to understand for stakeholders through an interactive dashboard with clear metrics and charts.
+* **Demonstrate A/B Testing Workflow:** Serve as a practical example of implementing an A/B testing analysis pipeline.
 
-* To provide an automated and reusable tool for efficient analysis of A/B test data.
-* To ensure statistical validity in the comparison of variants using appropriate methodologies (Z-test for proportions, T-test for means).
-* To facilitate comprehension of results through clear data visualization within an interactive dashboard.
-* To offer a practical implementation example of an A/B testing analysis workflow.
+## Features
 
-## Core Features
+* Loads A/B test data from a CSV file.
+* Performs statistical analysis:
+    * **Z-test for Proportions:** Compares conversion rates between groups.
+    * **Welch's T-test for Means (default):** Compares the average of continuous metrics between groups.
+* Calculates key performance indicators like conversion rates, means, lift, and p-values.
+* Determines statistical significance based on the chosen alpha level.
+* Provides an interactive web dashboard built with Streamlit to visualize results.
+* Includes plots (bar charts, box plots) for easy comparison using Plotly.
 
-* Data ingestion from CSV-formatted A/B test results.
-* Implementation of statistical comparison tests:
-    * **Two-Proportion Z-test:** For comparing binary conversion rates.
-    * **Welch's T-test (default):** For comparing means of continuous variables.
-* Calculation of standard A/B testing metrics including conversion rates, means, percentage lift, and p-values.
-* Assessment of statistical significance based on a defined alpha level.
-* Generation of an interactive web dashboard using Streamlit for results visualization.
-* Integration of Plotly for generating comparative plots (bar charts, box plots).
+## Dataset
 
-## Dataset Description
+The analysis uses the `finance_ab.csv` dataset[cite: 1]. Key columns used in the analysis include:
 
-The analysis utilizes the `finance_ab.csv` dataset[cite: 2]. Relevant columns include:
+* `UserID`: Unique identifier for each user.
+* `Version`: Identifies the group ('A' for Control, 'B' for Treatment).
+* `ApplicationCompleted`: The primary binary conversion metric (True/False).
+* *(Other columns like `Age`, `IncomeBracket`, `SessionDuration_seconds` are present but may or may not be used depending on the configuration)*.
 
-* `UserID`: Unique user identifier.
-* `Version`: Group assignment ('A' or 'B').
-* `ApplicationCompleted`: Binary conversion outcome[cite: 2].
-* Additional demographic or behavioral columns may be present but usage depends on configuration.
+## How It Works
 
-## Methodology
+1.  **Data Loading:** The `dashboard.py` script loads the `finance_ab.csv` data using pandas.
+2.  **Configuration:** Key parameters like the group column (`Version`), control/treatment values ('A'/'B'), conversion metric (`ApplicationCompleted`), continuous metrics to analyze, and the significance level (`ALPHA`) are defined (currently hardcoded in `dashboard.py`).
+3.  **Analysis:** The `SimpleABAnalyzer` class in `statistical_analyzer.py` is used:
+    * It separates the data into control and treatment groups.
+    * It calculates the conversion rate for the specified `conversion_metric` and performs a Z-test to compare the two groups.
+    * For each specified `continuous_metric`, it calculates the mean for each group and performs a T-test.
+    * P-values are calculated to determine if observed differences are statistically significant.
+    * Lift (percentage change) is calculated.
+4.  **Visualization:** The `dashboard.py` script uses Streamlit to create a web interface:
+    * Displays key metrics (rates/means, lift, p-value) using `st.metric`.
+    * Shows comparison plots (bar charts for rates/means, box plots for distributions) using Plotly.
+    * Allows users to view a sample of the raw data.
 
-1.  **Data Loading:** The `dashboard.py` script utilizes the Pandas library to load the dataset specified in `finance_ab.csv`.
-2.  **Configuration:** Parameters defining the experiment (group column, control/treatment identifiers, metric columns, alpha level) are specified (currently hardcoded within `dashboard.py`). The `config.py` file provides a template for external configuration.
-3.  **Statistical Analysis:** The `SimpleABAnalyzer` class (`statistical_analyzer.py`) performs the core analysis:
-    * Data segmentation into control and treatment datasets based on the `Version` column.
-    * Calculation and comparison of conversion rates using the Z-test.
-    * Calculation and comparison of means for specified continuous metrics using the T-test.
-    * Computation of p-values and determination of statistical significance relative to the configured alpha.
-    * Calculation of the percentage lift for each metric.
-4.  **Results Visualization:** The `dashboard.py` script employs Streamlit to render the analysis results:
-    * Summarized metrics are displayed using `st.metric`.
-    * Comparative visualizations are generated using Plotly.
-    * A data preview option is provided.
+## Setup and Usage
 
-## Installation and Execution
-
-1.  **Clone Repository:**
+1.  **Clone the repository:**
     ```bash
     git clone <repository-url>
     cd <repository-directory>
     ```
-2.  **Environment Setup (Recommended):**
+2.  **Create a virtual environment (recommended):**
     ```bash
     python -m venv venv
-    source venv/bin/activate  # For Linux/macOS
-    # venv\Scripts\activate  # For Windows
+    source venv/bin/activate  # On Windows use `venv\Scripts\activate`
     ```
-3.  **Install Dependencies:**
+3.  **Install dependencies:**
     ```bash
     pip install -r requirements.txt
     ```
-4.  **Data File:** Ensure the `finance_ab.csv` file is located within the project's root directory[cite: 2].
-5.  **Launch Dashboard:**
+4.  **Ensure `finance_ab.csv` is in the same directory as `dashboard.py`.**
+5.  **Run the Streamlit dashboard:**
     ```bash
     streamlit run dashboard.py
     ```
-6.  Initiate the analysis by activating the "Run Analysis" control within the dashboard interface.
+6.  Click the "Run Analysis" button in the dashboard to see the results.
 
-## Configuration Parameters
+## Configuration
 
-Key parameters for configuring the analysis (defined in `config.py` or hardcoded in `dashboard.py`) include:
+While the `dashboard.py` currently uses hardcoded parameters, the `config.py` file exists and demonstrates a pattern for external configuration. Key parameters include:
 
-* `INPUT_DATA_FILE`: Path to the input data file.
-* `GROUP_COLUMN`: Name of the column containing group assignments.
-* `CONTROL_GROUP_VALUE`: Identifier for the control group.
-* `TREATMENT_GROUP_VALUE`: Identifier for the treatment group.
-* `CONVERSION_COLUMN`: Name of the binary conversion metric column.
-* `CONTINUOUS_METRICS`: A list containing names of continuous metric columns for analysis.
-* `ALPHA`: The significance level threshold for hypothesis testing.
+* `INPUT_DATA_FILE`: Path to the data file.
+* `GROUP_COLUMN`: Column name distinguishing groups (e.g., 'Version').
+* `CONTROL_GROUP_VALUE`: Value identifying the control group (e.g., 'A').
+* `TREATMENT_GROUP_VALUE`: Value identifying the treatment group (e.g., 'B').
+* `CONVERSION_COLUMN`: Column name for the binary conversion metric.
+* `CONTINUOUS_METRICS`: List of column names for continuous metrics analysis.
+* `ALPHA`: Significance level for statistical tests (e.g., 0.05).
 
-## Repository Contents
+## Files
 
-* `finance_ab.csv`: Sample A/B test dataset[cite: 2].
-* `dashboard.py`: Streamlit application script.
-* `statistical_analyzer.py`: Module containing the `SimpleABAnalyzer` class.
-* `config.py`: Configuration file template.
-* `requirements.txt`: List of Python package dependencies[cite: 1].
-* `README.md`: This document.
+* `finance_ab.csv`[cite: 1]: The raw data for the A/B test.
+* `dashboard.py`: The Streamlit application script that runs the analysis and displays the dashboard.
+* `statistical_analyzer.py`: Contains the `SimpleABAnalyzer` class responsible for performing the statistical tests.
+* `config.py`: (Currently unused by dashboard) Defines configuration parameters.
+* `requirements.txt`[cite: 2]: Lists the necessary Python libraries.
+* `README.md`: This file.
 
-## Utilized Libraries
+## Libraries Used [cite: 2]
 
-* Pandas
-* NumPy
-* SciPy
-* Statsmodels
-* Plotly
-* Streamlit
+* Pandas: Data manipulation and loading.
+* NumPy: Numerical operations.
+* SciPy: Statistical functions (used within statsmodels).
+* Statsmodels: Statistical tests (Z-test, T-test).
+* Plotly: Creating interactive plots.
+* Streamlit: Building the web dashboard.
 
-## Contributions
+## Contributing
 
-Contributions to enhance this framework are welcome. Please refer to standard GitHub practices for pull requests or issue reporting.
+Contributions are welcome! Please feel free to submit a pull request or open an issue.
 
 ## License
 
-(Optional: Specify project license, e.g., MIT License)
+(Optional: Add license information here, e.g., MIT License)
