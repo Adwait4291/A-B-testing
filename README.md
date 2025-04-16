@@ -72,29 +72,6 @@ The analysis uses the `finance_ab.csv` dataset, which includes:
 3.  **Analyze:** An instance of `SimpleABAnalyzer` [cite: 1] is created and its `run_analysis` method is called. This performs the Z-tests and T-tests as described above.
 4.  **Visualize:** `dashboard.py` takes the analysis results and renders them using Streamlit components (`st.metric`, `st.tabs`, etc.) and Plotly charts.
 
-## Setup and Usage
-
-1.  **Clone Repository:**
-    ```bash
-    git clone <repository-url>
-    cd <repository-directory>
-    ```
-2.  **Create Virtual Environment (Recommended):**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows: venv\Scripts\activate
-    ```
-3.  **Install Dependencies:**
-    ```bash
-    pip install -r requirements.txt [cite: 2]
-    ```
-4.  **Data File:** Ensure `finance_ab.csv` is in the project directory.
-5.  **Run Dashboard:**
-    ```bash
-    streamlit run dashboard.py
-    ```
-6.  Interact with the dashboard and click "Run Analysis".
-
 ## Configuration Notes
 
 While `dashboard.py` currently uses hardcoded analysis parameters for simplicity, the `config.py` file provides a template demonstrating how configuration could be externalized for greater flexibility (e.g., easily changing target metrics or data files without modifying the main script).
@@ -113,11 +90,3 @@ While `dashboard.py` currently uses hardcoded analysis parameters for simplicity
 * **Plotly:** Interactive visualizations.
 * **Streamlit:** Web application framework.
 * **NumPy:** Numerical computation foundation.
-
-## Contributing
-
-Contributions aimed at enhancing the framework's capabilities or robustness are welcome via pull requests or issue reports.
-
-## License
-
-*(Optional: Specify license, e.g., MIT License)*
