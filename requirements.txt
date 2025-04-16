@@ -1,0 +1,10 @@
+# requirements.txt
+pandas
+numpy
+scipy
+statsmodels
+plotly
+matplotlib
+seaborn
+reportlab
+streamlit
