@@ -20,7 +20,8 @@ CONVERSION_COLUMN = 'ApplicationCompleted' # Binary (True/False or 1/0) column f
 
 # --- Metrics Configuration ---
 # List other numeric columns you might want to compare
-CONTINUOUS_METRICS = ['SessionDuration_seconds'] # Example continuous metric #
+# REMOVED 'SessionDuration_seconds'
+CONTINUOUS_METRICS = [] # Example: ['AnotherNumericColumn'] if you have others #
 
 # --- Statistical Analysis Parameters ---
 ALPHA = 0.05  # Significance level (commonly 5%)
@@ -28,4 +29,4 @@ ALPHA = 0.05  # Significance level (commonly 5%)
 # --- Dashboard Parameters ---
 DASHBOARD_TITLE = 'Simple A/B Test Dashboard' #
 
-print("Simplified config loaded.")
+print("Simplified config loaded. Continuous metrics updated.")

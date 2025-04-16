@@ -135,4 +135,89 @@ def plot_comparison(df_display, metric_name, result_data):
 
 # --- Main Application ---
 st.title(f"📊 {DASHBOARD_TITLE}")
-st.markdown(f"Analyze A/B test results from `{
+
+# --- CORRECTED LINE 138 ---
+data_filename = os.path.basename(INPUT_DATA_FILE)
+st.markdown(f"Analyze A/B test results from `{data_filename}`.")
+# --- END CORRECTION ---
+
+
+# --- Load Data ---
+df_loaded = load_data(INPUT_DATA_FILE)
+
+if df_loaded is None:
+    st.stop() # Stop execution if data loading failed
+
+# --- Sidebar ---
+st.sidebar.header("⚙️ Experiment Setup")
+st.sidebar.info(f"Group Column: `{GROUP_COLUMN}`")
+st.sidebar.info(f"Control Group: `{CONTROL_VALUE}`")
+st.sidebar.info(f"Treatment Group: `{TREATMENT_VALUE}`")
+st.sidebar.info(f"Conversion Metric: `{CONVERSION_METRIC}`")
+st.sidebar.info(f"Alpha (Significance Level): `{ALPHA}`")
+
+st.sidebar.subheader("Metrics to Analyze")
+# Allow user to select which continuous metrics to analyze from the list in config
+metrics_to_analyze = [CONVERSION_METRIC] # Start with the conversion metric
+available_continuous = [m for m in CONTINUOUS_METRICS if m in df_loaded.columns]
+
+if available_continuous:
+    selected_continuous = st.sidebar.multiselect(
+         "Select Continuous Metrics:",
+         options=available_continuous,
+         default=available_continuous
+    )
+    metrics_to_analyze.extend(selected_continuous)
+
+
+# --- Analysis Execution ---
+analysis_results = {}
+if st.button("Run Analysis", key='run_button'):
+    try:
+        with st.spinner("Running analysis..."):
+            analyzer = SimpleABAnalyzer(df_loaded, GROUP_COLUMN, CONTROL_VALUE, TREATMENT_VALUE)
+            # Separate conversion and continuous for the analyzer function
+            conv_metric_arg = CONVERSION_METRIC if CONVERSION_METRIC in metrics_to_analyze else None
+            cont_metrics_arg = [m for m in metrics_to_analyze if m != CONVERSION_METRIC and m in available_continuous]
+
+            analysis_results = analyzer.run_analysis(
+                conversion_metric=conv_metric_arg,
+                continuous_metrics=cont_metrics_arg,
+                alpha=ALPHA
+            )
+            st.session_state.analysis_results = analysis_results # Store results in session state
+            if not analysis_results:
+                 st.warning("Analysis completed but produced no results.")
+            else:
+                 st.success("Analysis Complete!")
+
+    except ValueError as ve:
+        st.error(f"Analysis Setup Error: {ve}")
+    except Exception as e:
+        st.error(f"An unexpected error occurred during analysis: {e}")
+        traceback.print_exc()
+
+# --- Display Results ---
+# Check if results exist in session state (from previous run or current run)
+if 'analysis_results' in st.session_state and st.session_state.analysis_results:
+    results_to_display = st.session_state.analysis_results
+    display_simplified_metrics(results_to_display)
+
+    st.divider()
+    st.header("📈 Detailed Metric Analysis")
+
+    # Create tabs for each analyzed metric
+    metric_tabs = st.tabs(list(results_to_display.keys()))
+    tab_index = 0
+    for metric_name, result_data in results_to_display.items():
+         with metric_tabs[tab_index]:
+             plot_comparison(df_loaded, metric_name, result_data)
+         tab_index += 1
+
+elif not analysis_results: # If button wasn't clicked or analysis failed on first try
+    st.info("Click 'Run Analysis' to see the results.")
+
+
+# --- Show Data Sample ---
+with st.expander("View Raw Data Sample (First 100 Rows)"):
+    st.dataframe(df_loaded.head(100))
